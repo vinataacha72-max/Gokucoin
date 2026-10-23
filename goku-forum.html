@@ -1,0 +1,379 @@
+<!doctype html>
+<!--
+SETUP: 1) run goku-setup.sql in Supabase SQL Editor. 2) Supabase -> Authentication -> Providers -> Google: enable + paste Google Client ID/Secret.
+3) Authentication -> URL Configuration: Site URL = https://goku.forum. 4) Fill CFG.url and CFG.key below.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GOKU Forum</title>
+<style>
+:root{--bg:#0b0f1e;--card:#141a30;--line:#25304f;--tx:#eef2ff;--mu:#8e9ac0;--or:#ff8a00;--bl:#29b6ff}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% -10%,#1d2a55,var(--bg) 60%);color:var(--tx);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+header{text-align:center;padding:28px 16px 8px}
+header img{width:84px;height:84px;border-radius:50%;border:3px solid var(--or);object-fit:cover}
+h1{margin:8px 0 0;font-size:2rem;letter-spacing:.12em;color:var(--or)}
+.links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.links a{color:var(--tx);text-decoration:none;border:1px solid var(--line);padding:6px 14px;border-radius:99px;font-size:.9rem}
+.links a:hover{border-color:var(--bl);color:var(--bl)}
+main{max-width:680px;margin:0 auto;padding:8px 14px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+input[type=text],select,textarea{width:100%;background:#0d1226;color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
+textarea{min-height:90px;resize:vertical;margin:8px 0}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.two{display:grid;grid-template-columns:1fr 130px;gap:8px}
+.file{cursor:pointer;color:var(--bl);font-size:.9rem}
+.file input{display:none}
+button{background:var(--or);color:#1a1000;border:0;border-radius:10px;padding:10px 22px;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+#prev img,#prev video,.media{max-width:100%;max-height:480px;border-radius:10px;display:block;margin-top:8px}
+#msg{color:var(--mu);font-size:.85rem;margin-top:6px;min-height:1.2em}
+#msg.err{color:#ff6b6b}
+#tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px}
+#tabs button{background:transparent;color:var(--mu);border:1px solid var(--line);padding:5px 14px;font-weight:500}
+#tabs button.on{color:#1a1000;background:var(--bl);border-color:var(--bl)}
+.meta{display:flex;gap:8px;align-items:center;font-size:.85rem;color:var(--mu)}
+.meta b{color:var(--tx)}
+.tag{background:#22305a;color:var(--bl);padding:1px 10px;border-radius:99px;font-size:.75rem}
+.body{white-space:pre-wrap;word-break:break-word;margin:8px 0 0}
+.like{background:transparent;color:var(--mu);border:1px solid var(--line);padding:4px 12px;margin-top:10px;font-weight:500}
+.like.done{color:var(--or);border-color:var(--or)}
+.demo{background:#3a2a00;color:#ffd27a;border-radius:10px;padding:8px 12px;font-size:.85rem}
+.empty{text-align:center;color:var(--mu);padding:30px}
+
+/* ===== Dragon Ball art-style FX ===== */
+body{background:#0a0614}
+main,header{position:relative;z-index:1}
+.fx{position:fixed;inset:0;pointer-events:none;z-index:0}
+/* psychedelic holo (art 1) */
+.holo{background:linear-gradient(115deg,#ff2bd6,#7a2bff,#18c8ff,#2bff9a,#ffe92b,#ff7a18,#ff2bd6);background-size:300% 300%;opacity:.35;mix-blend-mode:screen;animation:holo 14s linear infinite}
+@keyframes holo{to{background-position:300% 0}}
+.dots{background:radial-gradient(#0008 1px,transparent 1.6px) 0 0/6px 6px;opacity:.5}
+/* radial speed lines (art 3) */
+.rays{inset:-70%;background:repeating-conic-gradient(from 0deg at 50% 50%,#ff3b1f66 0 2deg,transparent 2deg 6deg,#2bff9a44 6deg 7deg,transparent 7deg 10deg,#ffd60a55 10deg 11deg,transparent 11deg 15deg);animation:spin 50s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* sparkle stars (art 1) */
+#sparks{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.spark{clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);pointer-events:none}
+.spark.tw{position:absolute;background:linear-gradient(135deg,#fff,#7ee7ff);opacity:0;animation:tw 3s ease-in-out infinite}
+@keyframes tw{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:.95;transform:scale(1) rotate(45deg)}}
+/* comic split panel header (art 2) */
+header{margin-bottom:8px;padding:34px 16px 40px;background:linear-gradient(105deg,#ff8a1f 0 49.4%,#000 49.4% 50.6%,#1e8cff 50.6%);border-bottom:5px solid #000;clip-path:polygon(0 0,100% 0,100% 90%,0 100%)}
+header img{border:4px solid #fff;box-shadow:0 0 0 4px #ffe92b,0 0 30px #ff9a00,0 0 60px #ff2a1a;animation:pulse 1.4s ease-in-out infinite alternate}
+@keyframes pulse{to{box-shadow:0 0 0 6px #fff36b,0 0 45px #ffb400,0 0 90px #ff2a1a}}
+/* bold comic title (art 3) + red aura (art 4) */
+h1{font:900 clamp(3.2rem,13vw,6rem)/1 Impact,"Arial Black",sans-serif;letter-spacing:.04em;color:#ff2a1a;-webkit-text-stroke:3px #fff;paint-order:stroke fill;transform:skew(-6deg) rotate(-2deg);text-shadow:4px 4px 0 #000,0 0 24px #ff3b1f,0 0 50px #ff9a00;animation:aura 1.2s ease-in-out infinite alternate}
+@keyframes aura{to{text-shadow:5px 5px 0 #000,0 0 36px #ff3b1f,0 0 80px #ffd60a,0 0 120px #ff2a1a}}
+.links a{background:#000c;border:2px solid #fff;font-weight:700;transform:skew(-8deg)}
+.links a:hover{background:#ff2a1a;color:#fff;border-color:#ffe92b;box-shadow:0 0 18px #ff2a1a}
+/* ink-bordered comic cards with energy glow */
+.card{position:relative;background:#120a24ee;border:3px solid #000;border-radius:6px;box-shadow:0 0 0 2px #fff,6px 6px 0 #ff2a1a;transition:.15s}
+.card:hover{transform:translate(-2px,-2px);box-shadow:0 0 0 2px #fff,8px 8px 0 #ffd60a,0 0 32px #ff2a1a}
+.card:hover::after{content:"";position:absolute;right:-14px;top:-22px;width:38px;height:66px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 70'%3E%3Cpath d='M26 0 8 34h12L10 70 34 28H21z' fill='%23ffe92b' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") no-repeat center/contain;filter:drop-shadow(0 0 8px #ff2a1a);animation:zap .25s steps(2) infinite}
+@keyframes zap{50%{opacity:.2;transform:scale(.9) rotate(6deg)}}
+textarea:focus,input:focus,select:focus{outline:0;border-color:#ff2a1a;box-shadow:0 0 0 2px #ffe92b,0 0 24px #ff2a1a}
+button{background:linear-gradient(#ffe92b,#ff8a00);border:3px solid #000;text-transform:uppercase;transform:skew(-8deg);box-shadow:3px 3px 0 #000,0 0 18px #ff2a1a}
+button:active{transform:skew(-8deg) translate(3px,3px);box-shadow:0 0 22px #ffe92b}
+#tabs button{background:#000a;color:#fff;border:2px solid #fff;box-shadow:none}
+#tabs button.on{background:#ff2a1a;border-color:#ffe92b;box-shadow:0 0 16px #ff2a1a}
+.like{background:#000a;color:#ffd27a;border:2px solid #ff8a00;box-shadow:none}
+.like.done{color:#fff;background:radial-gradient(circle,#ffe92b,#ff8a00 60%,#ff2a1a);border-color:#fff;box-shadow:0 0 20px #ffb400}
+.tag{background:linear-gradient(90deg,#ff2bd6,#18c8ff,#ffe92b);color:#000;font-weight:800}
+/* white-outlined media with orange energy splash (art 3) */
+.media,#prev img,#prev video{border:4px solid #fff;outline:3px solid #000;box-shadow:0 0 0 6px #ff9a00,0 0 30px #ffd60acc}
+/* burst particles + flash */
+.ki{position:fixed;width:11px;height:11px;border-radius:50%;box-shadow:0 0 12px #ffb400;pointer-events:none;z-index:60}
+.spark:not(.tw){position:fixed;width:20px;height:20px;z-index:60}
+.flash{position:fixed;inset:0;background:radial-gradient(circle,#fff,#ffd60a 40%,#ff2a1a);pointer-events:none;z-index:70}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* art images as backgrounds behind the GOKU title and link buttons */
+h1{display:block;width:fit-content;margin:10px auto 0;padding:6px 38px;color:#ffe92b;-webkit-text-stroke:3px #000;background:linear-gradient(#0003,#0003),url(goku-bg-red.jpg) 30% 22%/cover;border:4px solid #000;box-shadow:0 0 0 3px #fff,6px 6px 0 #000,0 0 30px #ff2a1a}
+.links a{padding:8px 20px;color:#fff;font-weight:800;text-shadow:0 0 6px #000,2px 2px 0 #000;border:3px solid #000;box-shadow:0 0 0 2px #fff,3px 3px 0 #000}
+.links a:nth-child(1){background:linear-gradient(#0004,#0004),url(goku-bg-red.jpg) 30% 22%/cover}
+.links a:nth-child(2){background:linear-gradient(#0004,#0004),url(goku-bg-holo.jpg) 70% 40%/cover}
+.links a:nth-child(3){background:linear-gradient(#0004,#0004),url(goku-bg-holo.jpg) 85% 60%/cover}
+.links a:hover{filter:brightness(1.25) saturate(1.2);box-shadow:0 0 0 2px #ffe92b,0 0 22px #ffb400;color:#fff}
+
+.chart iframe{width:100%;height:520px;border:3px solid #000;border-radius:6px;margin-top:10px;background:#0b0f1e;box-shadow:0 0 0 2px #fff,0 0 24px #ff2a1acc}
+.chart .ct{color:#ffe92b;letter-spacing:.08em;text-shadow:2px 2px 0 #000,0 0 12px #ff2a1a}
+.chart a{color:var(--bl);font-weight:700}
+.cabtn{width:100%;margin-top:10px;font-size:.85rem;text-transform:none}
+@media(max-width:600px){.chart iframe{height:420px}}
+
+/* GOKU title on animated SSJ aura gif */
+h1{padding:22px 64px;color:#fff;-webkit-text-stroke:4px #000;background:linear-gradient(#0004,#0004),url(goku-bg-aura.gif) center 30%/cover;text-shadow:4px 4px 0 #000,0 0 18px #ff9a00,0 0 40px #ff2a1a}
+
+/* ===== Golden Super Saiyan theme (from the aura gif) ===== */
+:root{--or:#ffb400;--bl:#ffd84a}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(#000b,#000d),url(goku-bg-aura.gif) center/cover}
+.holo{display:none}
+.rays{background:repeating-conic-gradient(from 0deg at 50% 50%,#ffb40044 0 2deg,transparent 2deg 6deg,#fff2 6deg 7deg,transparent 7deg 11deg)}
+header{background:linear-gradient(105deg,#ff6a00 0 49.4%,#000 49.4% 50.6%,#ffd84a 50.6%);border-bottom-color:#000}
+header img{box-shadow:0 0 0 4px #ffe27a,0 0 30px #ffb400,0 0 60px #ff6a00}
+@keyframes aura{to{text-shadow:5px 5px 0 #000,0 0 30px #ffb400,0 0 70px #ffd84a,0 0 110px #ff6a00}}
+.card{background:#120a04ee;box-shadow:0 0 0 2px #ffe27a,6px 6px 0 #c45a00,0 0 26px #ffb40055}
+.card:hover{box-shadow:0 0 0 2px #fff3b0,8px 8px 0 #ffb400,0 0 40px #ffb400}
+.card:hover::after{filter:drop-shadow(0 0 10px #ffb400)}
+.tag{background:linear-gradient(90deg,#ff9a00,#ffe27a);color:#000}
+#tabs button.on{background:#ffb400;color:#000;border-color:#fff;box-shadow:0 0 18px #ffb400}
+.like{border-color:#ffb400}
+.like.done{background:radial-gradient(circle,#fff,#ffd84a 45%,#ff9a00);color:#000;box-shadow:0 0 22px #ffd84a}
+button{box-shadow:3px 3px 0 #000,0 0 20px #ffb400}
+textarea:focus,input:focus,select:focus{border-color:#ffd84a;box-shadow:0 0 0 2px #ffb400,0 0 26px #ffb400}
+.media,#prev img,#prev video{box-shadow:0 0 0 6px #ffb400,0 0 34px #ffd84a}
+.chart iframe{box-shadow:0 0 0 2px #ffe27a,0 0 28px #ffb400}
+.spark.tw{background:linear-gradient(135deg,#fff,#ffd84a)}
+.ember{position:absolute;bottom:-12px;border-radius:50%;background:#ffd84a;box-shadow:0 0 8px #ff9a00,0 0 16px #ff6a00;opacity:.9;animation:rise linear infinite}
+@keyframes rise{to{transform:translate(var(--dx),-110vh);opacity:0}}
+.bolt{position:absolute;top:0;width:90px;height:100%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 200' preserveAspectRatio='none'%3E%3Cpath d='M34 0 18 62l14 4-22 62 16 4L6 200l38-88-16-4 20-50-14-4z' fill='%23fff6c2' stroke='%23ffd84a' stroke-width='2'/%3E%3C/svg%3E") no-repeat center/100% 100%;filter:drop-shadow(0 0 10px #ffb400) drop-shadow(0 0 26px #ff9a00);opacity:0}
+
+dialog{background:#120a04;color:var(--tx);border:3px solid #000;border-radius:8px;box-shadow:0 0 0 2px #ffe27a,0 0 40px #ffb400;max-width:440px;width:92%}
+dialog::backdrop{background:#000a}
+dialog label{display:block;margin:10px 0 4px;color:var(--mu);font-size:.85rem}
+.ava{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #ffd84a;background:#331a00;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;flex:none}
+.pav{width:88px;height:88px;border:4px solid #000;margin:-44px 0 0 12px;font-size:2rem}
+.banner{height:140px;background:#3a2000 center/cover;border-radius:4px 4px 0 0;margin:-14px -14px 0}
+.hd{display:flex;gap:10px;align-items:center}.grow{flex:1;min-width:0}
+.un{color:var(--mu);font-size:.85rem}.lnk{cursor:pointer}.lnk:hover{color:#ffd84a}
+.authbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sm{padding:6px 12px;font-size:.8rem}.acts{display:flex;gap:8px}.pn{font-size:1.3rem}
+</style>
+</head>
+<body>
+<div class="fx rays"></div><div class="fx holo"></div><div class="fx dots"></div><div id="sparks"></div>
+<header>
+  <img src="goku-avatar.png" alt="Goku" onerror="this.style.display='none'">
+  <h1>GOKU</h1>
+  <div class="links">
+    <a href="https://t.me/gokusolcoin" target="_blank" rel="noopener">Telegram</a>
+    <a href="https://x.com/i/communities/1840606130243772446" target="_blank" rel="noopener">X Community</a>
+    <a href="https://x.com/gokusolcoin" target="_blank" rel="noopener">@gokusolcoin</a>
+  </div>
+</header>
+<main>
+  <div id="auth" class="card authbar"></div>
+  <div id="demo" class="demo" hidden>Demo mode: posts are saved only in this browser. Add your Supabase keys to go live for everyone.</div>
+  <section class="card chart">
+    <div class="row"><b class="ct">$GOKU LIVE CHART</b>
+      <span><a href="https://dexscreener.com/solana/Dm8g1s9t28bynXtGizmCTrJkWHk3UrriwRX2QChRpump" target="_blank" rel="noopener">DexScreener</a> · <a href="https://pump.fun/coin/Dm8g1s9t28bynXtGizmCTrJkWHk3UrriwRX2QChRpump" target="_blank" rel="noopener">Pump.fun</a></span></div>
+    <iframe title="GOKU chart" loading="lazy" src="https://dexscreener.com/solana/Dm8g1s9t28bynXtGizmCTrJkWHk3UrriwRX2QChRpump?embed=1&theme=dark&trades=0&info=0" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+    <button type="button" id="ca" class="cabtn" data-ca="Dm8g1s9t28bynXtGizmCTrJkWHk3UrriwRX2QChRpump">CA: Dm8g1s…QChRpump · tap to copy</button>
+  </section>
+  <section class="card" id="composer">
+    <div class="two">
+      <input type="text" id="name" maxlength="24" placeholder="Your name (optional)">
+      <select id="cat"><option>General</option><option>Art</option><option>Video</option><option>Meme</option></select>
+    </div>
+    <textarea id="text" maxlength="1000" placeholder="Share art, videos, memes or thoughts with the Saiyans…"></textarea>
+    <div class="row">
+      <label class="file"><input type="file" id="file" accept="image/*,video/*"> 📎 Attach image, GIF or video</label>
+      <button id="post">Post</button>
+    </div>
+    <div id="prev"></div>
+    <div id="msg"></div>
+  </section>
+  <div id="pv"></div><div id="tabs"></div>
+  <section id="feed"></section>
+</main>
+<dialog id="dlg">
+  <h2 style="margin:0 0 4px;color:#ffd84a">Your profile</h2>
+  <label for="u_user">Username (3-15: a-z, 0-9, _)</label><input type="text" id="u_user" maxlength="15" placeholder="kakarot">
+  <label for="u_name">Display name</label><input type="text" id="u_name" maxlength="40">
+  <label for="u_bio">Bio</label><textarea id="u_bio" maxlength="160" style="min-height:70px"></textarea>
+  <label for="u_av">Profile picture</label><input type="file" id="u_av" accept="image/*">
+  <label for="u_bn">Banner</label><input type="file" id="u_bn" accept="image/*">
+  <div id="u_msg" class="un" style="min-height:1.3em;margin-top:8px"></div>
+  <div class="row" style="margin-top:8px"><button id="u_cancel" class="sm">Cancel</button><button id="u_save">Save</button></div>
+</dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const CFG={url:"",key:"",bucket:"media",maxMB:50};
+const live=!!(CFG.url&&CFG.key);
+const $=id=>document.getElementById(id);
+const CATS=["All","Art","Video","Meme","General"];
+let sb=null,session=null,me=null,posts=[],myLikes=new Set(),filter="All",pending=null,vp=null;
+const tok=()=>session?session.access_token:CFG.key;
+const JH=()=>({apikey:CFG.key,Authorization:"Bearer "+tok(),"Content-Type":"application/json"});
+async function api(path,opt){
+  const r=await fetch(CFG.url+"/rest/v1/"+path,{...opt,headers:{...JH(),...(opt&&opt.headers)}});
+  const t=await r.text();if(!r.ok)throw new Error(t);return t?JSON.parse(t):null}
+function say(t,err){const m=$("msg");m.textContent=t||"";m.className=err?"err":""}
+const safe=u=>typeof u==="string"&&(live?u.startsWith(CFG.url+"/storage/"):u.startsWith("data:"));
+const ext=f=>(f.name.split(".").pop()||"bin").replace(/[^a-z0-9]/gi,"").slice(0,5);
+function mk(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function fileToData(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)})}
+async function upload(f){
+  const path=session.user.id+"/"+Date.now()+"-"+Math.random().toString(36).slice(2,8)+"."+ext(f);
+  const r=await fetch(`${CFG.url}/storage/v1/object/${CFG.bucket}/${path}`,{method:"POST",headers:{apikey:CFG.key,Authorization:"Bearer "+tok(),"Content-Type":f.type},body:f});
+  if(!r.ok)throw new Error("upload");
+  return `${CFG.url}/storage/v1/object/public/${CFG.bucket}/${path}`}
+function avatar(p,cls){
+  if(p&&safe(p.avatar_url)){const i=mk("img","ava "+(cls||""));i.src=p.avatar_url;i.alt="";return i}
+  return mk("div","ava "+(cls||""),((p&&(p.display_name||p.username))||"?").charAt(0).toUpperCase())}
+
+/* ---- auth + profile ---- */
+async function loadMe(){
+  me=null;if(!session)return;
+  try{const r=await api("profiles?id=eq."+session.user.id+"&select=*");me=r&&r[0]||null}catch(e){}
+  if(!me&&!$("dlg").open)openEdit(true)}
+function renderAuth(){
+  const a=$("auth"),comp=$("composer");a.textContent="";
+  if(!live){a.append(mk("span","un","Demo mode: Google login needs the Supabase setup."));comp.hidden=false;return}
+  if(!session){
+    const b=mk("button",null,"Continue with Google");
+    b.onclick=()=>sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+location.pathname}});
+    a.append(mk("span","un","Log in to post, like and get your own profile."),b);comp.hidden=true;return}
+  if(!me){const b=mk("button","sm","Set up profile");b.onclick=()=>openEdit(true);a.append(mk("span","un","Almost there…"),b);comp.hidden=true;return}
+  const av=avatar(me);av.onclick=()=>openProfile(me.username);
+  const nm=mk("div","grow");nm.append(mk("b",null,me.display_name||me.username),mk("div","un","@"+me.username));
+  const e=mk("button","sm","Edit profile");e.onclick=()=>openEdit();
+  const o=mk("button","sm","Log out");o.onclick=()=>sb.auth.signOut();
+  a.append(av,nm,e,o);comp.hidden=false}
+function openEdit(first){
+  $("u_user").value=me?me.username:"";
+  $("u_name").value=me?(me.display_name||""):((session&&session.user.user_metadata&&session.user.user_metadata.full_name)||"");
+  $("u_bio").value=me?(me.bio||""):"";$("u_av").value="";$("u_bn").value="";$("u_msg").textContent="";
+  $("u_cancel").hidden=!!first;$("dlg").showModal()}
+$("u_cancel").onclick=()=>$("dlg").close();
+$("u_save").onclick=async()=>{
+  const un=$("u_user").value.trim().toLowerCase().replace(/^@/,""),m=$("u_msg");
+  if(!/^[a-z0-9_]{3,15}$/.test(un)){m.textContent="Username: 3-15 letters, numbers or _";return}
+  $("u_save").disabled=true;m.textContent="Saving…";
+  try{
+    const row={username:un,display_name:$("u_name").value.trim().slice(0,40)||un,bio:$("u_bio").value.trim().slice(0,160),avatar_url:me?me.avatar_url:null,banner_url:me?me.banner_url:null};
+    const av=$("u_av").files[0],bn=$("u_bn").files[0];
+    if(av&&av.type.startsWith("image/")&&av.size<5242880)row.avatar_url=await upload(av);
+    if(bn&&bn.type.startsWith("image/")&&bn.size<5242880)row.banner_url=await upload(bn);
+    if(me)await api("profiles?id=eq."+me.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(row)});
+    else await api("profiles",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({id:session.user.id,...row})});
+    const r=await api("profiles?id=eq."+session.user.id+"&select=*");me=r[0];
+    $("dlg").close();renderAuth();load();
+  }catch(e){m.textContent=/23505|duplicate/i.test(e.message)?"That username is taken.":"Save failed. Try again."}
+  $("u_save").disabled=false};
+async function openProfile(un){
+  try{const r=await api("profiles?username=eq."+encodeURIComponent(un)+"&select=*");vp=r&&r[0]||null}catch(e){vp=null}
+  filter="All";await load();$("pv").scrollIntoView({behavior:"smooth"})}
+function renderPV(){
+  const pv=$("pv");pv.textContent="";if(!vp)return;
+  const c=mk("div","card ph"),bn=mk("div","banner");
+  if(safe(vp.banner_url))bn.style.backgroundImage='url("'+encodeURI(vp.banner_url)+'")';
+  const top=mk("div","row");top.append(avatar(vp,"pav"));
+  const back=mk("button","sm","← All posts");back.onclick=()=>{vp=null;load()};
+  if(me&&me.id===vp.id){const e=mk("button","sm","Edit profile");e.onclick=()=>openEdit();top.append(e)}
+  top.append(back);
+  c.append(bn,top,mk("b","pn",vp.display_name||vp.username),mk("div","un","@"+vp.username));
+  if(vp.bio)c.append(mk("p","body",vp.bio));
+  c.append(mk("div","un","Joined "+new Date(vp.created_at).toLocaleDateString(undefined,{month:"long",year:"numeric"})));
+  pv.append(c)}
+
+/* ---- posts ---- */
+async function load(){
+  try{
+    if(live){
+      let q="posts?select=*,profiles(username,display_name,avatar_url),likes(count)&order=created_at.desc&limit=100";
+      if(vp)q+="&user_id=eq."+vp.id;
+      posts=await api(q)||[];myLikes=new Set();
+      if(me){const l=await api("likes?select=post_id&user_id=eq."+me.id);(l||[]).forEach(x=>myLikes.add(x.post_id))}
+    }else{try{posts=JSON.parse(localStorage.getItem("gk_posts")||"[]")}catch(e){posts=[]}}
+  }catch(e){say("Could not load posts.",true)}
+  render()}
+$("file").onchange=e=>{
+  const f=e.target.files[0];pending=null;$("prev").textContent="";say("");
+  if(!f)return;const limit=live?CFG.maxMB:2;
+  if(!/^(image|video)\//.test(f.type))return say("Only images, GIFs and videos are allowed.",true);
+  if(f.size>limit*1048576)return say("File too large (max "+limit+" MB).",true);
+  pending=f;const el=document.createElement(f.type.startsWith("video")?"video":"img");
+  el.src=URL.createObjectURL(f);if(el.tagName==="VIDEO")el.controls=true;$("prev").appendChild(el)};
+$("post").onclick=async()=>{
+  const body=$("text").value.trim();
+  if(!body&&!pending)return say("Write something or attach a file.",true);
+  if(live&&!me)return say("Log in first.",true);
+  $("post").disabled=true;say("Posting…");
+  try{
+    let url=null,type=null;
+    if(pending){type=pending.type.startsWith("video")?"video":"image";url=live?await upload(pending):await fileToData(pending)}
+    if(live)await api("posts",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({user_id:me.id,category:$("cat").value,body,media_url:url,media_type:type})});
+    else{posts.unshift({id:String(Date.now()),created_at:new Date().toISOString(),category:$("cat").value,body,media_url:url,media_type:type,likes:0,profiles:{display_name:$("name").value.trim()||"Guest",username:"guest"}});
+      localStorage.setItem("gk_posts",JSON.stringify(posts.slice(0,30)))}
+    $("text").value="";$("file").value="";$("prev").textContent="";pending=null;say("Posted!");burst();await load();
+  }catch(e){say("Post failed. Try a smaller file or check your setup.",true)}
+  $("post").disabled=false};
+async function like(p,btn){
+  burst(btn.getBoundingClientRect());
+  if(live){
+    if(!me)return say("Log in to like posts.",true);
+    if(!p.likes||!p.likes[0])p.likes=[{count:0}];
+    try{
+      if(myLikes.has(p.id)){await api("likes?post_id=eq."+p.id+"&user_id=eq."+me.id,{method:"DELETE"});myLikes.delete(p.id);p.likes[0].count--}
+      else{await api("likes",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({post_id:p.id,user_id:me.id})});myLikes.add(p.id);p.likes[0].count++}
+    }catch(e){return}
+  }else{
+    if(myLikes.has(p.id)){myLikes.delete(p.id);p.likes--}else{myLikes.add(p.id);p.likes=(p.likes||0)+1}
+    try{localStorage.setItem("gk_posts",JSON.stringify(posts))}catch(e){}}
+  render()}
+async function del(p){if(!confirm("Delete this post?"))return;try{await api("posts?id=eq."+p.id,{method:"DELETE"});load()}catch(e){say("Delete failed.",true)}}
+function render(){
+  renderPV();
+  const tabs=$("tabs");tabs.textContent="";
+  CATS.forEach(c=>{const b=mk("button",c===filter?"on":null,c);b.onclick=()=>{filter=c;render()};tabs.appendChild(b)});
+  const feed=$("feed");feed.textContent="";
+  const list=posts.filter(p=>filter==="All"||p.category===filter);
+  if(!list.length){feed.appendChild(mk("div","empty","No posts yet. Be the first Saiyan to post!"));return}
+  list.forEach(p=>{
+    const pr=p.profiles||{display_name:"Guest",username:"guest"},c=mk("article","card");
+    const h=mk("div","hd"),av=avatar(pr),nm=mk("div","grow"),n=mk("b","lnk",pr.display_name||pr.username);
+    if(live)av.onclick=n.onclick=()=>openProfile(pr.username);
+    nm.append(n,mk("div","un","@"+pr.username+" · "+new Date(p.created_at).toLocaleString()));
+    h.append(av,nm,mk("span","tag",p.category||"General"));c.append(h);
+    if(p.body)c.append(mk("p","body",p.body));
+    if(p.media_url&&safe(p.media_url)){
+      const el=document.createElement(p.media_type==="video"?"video":"img");el.className="media";el.src=p.media_url;
+      if(el.tagName==="VIDEO"){el.controls=true;el.preload="metadata"}else el.loading="lazy";c.append(el)}
+    const n2=live?(p.likes&&p.likes[0]?p.likes[0].count:0):(p.likes||0),act=mk("div","acts");
+    const b=mk("button","like"+(myLikes.has(p.id)?" done":""),"🔥 "+n2);b.onclick=()=>like(p,b);act.append(b);
+    if(live&&me&&p.user_id===me.id){const d=mk("button","like","🗑");d.onclick=()=>del(p);act.append(d)}
+    c.append(act);feed.append(c)})}
+
+function burst(r){
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
+  const big=!r,x=r?r.left+r.width/2:innerWidth/2,y=r?r.top+r.height/2:innerHeight/3;
+  const cols=["#ffe92b","#ffb400","#ff6a00","#fff","#ffd84a","#fff3b0"];
+  for(let i=0;i<(big?42:16);i++){
+    const e=document.createElement("i");e.className=i%3?"ki":"spark";
+    e.style.cssText="left:"+x+"px;top:"+y+"px;background:"+cols[i%cols.length]+";color:"+cols[i%cols.length];
+    document.body.appendChild(e);
+    const a=Math.random()*6.283,d=(big?160:70)+Math.random()*(big?280:90);
+    e.animate([{transform:"translate(-50%,-50%) scale(1)",opacity:1},{transform:"translate(calc(-50% + "+Math.cos(a)*d+"px),calc(-50% + "+Math.sin(a)*d+"px)) scale(0)",opacity:0}],{duration:600+Math.random()*500,easing:"cubic-bezier(.1,.8,.3,1)"}).onfinish=()=>e.remove();
+  }
+  if(big){
+    const f=document.createElement("div");f.className="flash";document.body.appendChild(f);
+    f.animate([{opacity:.85},{opacity:0}],{duration:450}).onfinish=()=>f.remove();
+    document.querySelector("main").animate([{transform:"translate(0,0)"},{transform:"translate(-6px,4px)"},{transform:"translate(6px,-4px)"},{transform:"translate(0,0)"}],{duration:140,iterations:3});
+  }
+}
+(function(){const sp=$("sparks");for(let i=0;i<16;i++){const s=document.createElement("i");s.className="spark tw";const z=10+Math.random()*26;s.style.cssText="left:"+Math.random()*100+"%;top:"+Math.random()*100+"%;width:"+z+"px;height:"+z+"px;animation-delay:"+Math.random()*4+"s;animation-duration:"+(2+Math.random()*3)+"s";sp.appendChild(s)}})();
+$("ca").onclick=async e=>{const b=e.currentTarget,t=b.dataset.ca,o=b.textContent;
+  try{await navigator.clipboard.writeText(t)}catch(x){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(y){}a.remove()}
+  b.textContent="Copied!";burst(b.getBoundingClientRect());setTimeout(()=>b.textContent=o,1500)};
+(function(){
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
+  const sp=$("sparks");
+  for(let i=0;i<26;i++){const e=document.createElement("i");e.className="ember";const z=2+Math.random()*5;
+    e.style.cssText="left:"+Math.random()*100+"%;width:"+z+"px;height:"+z+"px;animation-duration:"+(5+Math.random()*7)+"s;animation-delay:"+(-Math.random()*10)+"s;--dx:"+(Math.random()*120-60)+"px";sp.appendChild(e)}
+  function bolt(){const b=document.createElement("div");b.className="bolt";b.style.left=Math.random()*90+"%";
+    b.style.transform="scaleX("+(Math.random()<.5?-1:1)+")";sp.appendChild(b);
+    b.animate([{opacity:0},{opacity:1},{opacity:.1},{opacity:.9},{opacity:0}],{duration:420}).onfinish=()=>b.remove();
+    setTimeout(bolt,2500+Math.random()*4500)}
+  setTimeout(bolt,1500);
+})();
+if(live){
+  $("name").style.display="none";document.querySelector(".two").style.gridTemplateColumns="1fr";
+  sb=supabase.createClient(CFG.url,CFG.key);
+  sb.auth.onAuthStateChange(async(_e,sess)=>{session=sess;await loadMe();renderAuth();load()});
+}else{$("demo").hidden=false;renderAuth();load()}
+</script>
+</body>
+</html>
